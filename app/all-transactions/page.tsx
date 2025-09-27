@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useState, useMemo } from "react";
 import {
   Table,
   TableHeader,
@@ -19,6 +19,7 @@ import {
   CheckCircle,
   CircleCheckBig,
   CircleX,
+  ExternalLink,
   Eye,
   FileText,
   Funnel,
@@ -27,6 +28,29 @@ import {
 } from "lucide-react";
 import TransactionNavbar from "@/components/Nav/TransactionNavbar";
 import { useRouter } from "next/navigation";
+interface TransactionItem {
+  id: number;
+  hash: string;
+  type: "Application" | "Payment" | "Result" | "Admit Card";
+  candidate: string;
+  name: string;
+  block: string;
+  status: Status;
+  time: string;
+  icon?: string;
+  actions?: any;
+}
+
+const users: TransactionItem[] = [
+  { id: 1, hash: "# 0x4a5e1e...fdeda33b", type: "Application", candidate: "AIIMS2024001", name: "Rahul kumar Singh", block: "#15847", status: "confirmed", time: "2024-01-15 14:30:22" },
+  { id: 2, hash: "# 0x7c8d9e...a1b2c3d4", type: "Payment", candidate: "AIIMS2024002", name: "Priya Sharma", block: "#15848", status: "pending", time: "2024-01-15 14:31:00" },
+  { id: 3, hash: "# 0x3f2b1a...e6f7a8b9", type: "Result", candidate: "AIIMS2024003", name: "Vijay Mehra", block: "#15849", status: "failed", time: "2024-01-15 14:32:15" },
+  { id: 4, hash: "# 0x8d3e4f...0b1c2d3e", type: "Result", candidate: "AIIMS2024004", name: "Sonia Gupta", block: "#15850", status: "failed", time: "2024-01-15 14:33:40" },
+  { id: 5, hash: "# 0x5g6h7i...j1k2l3m4", type: "Application", candidate: "AIIMS2024005", name: "Abhishek Singh", block: "#15851", status: "confirmed", time: "2024-01-15 14:34:55" },
+  { id: 6, hash: "# 0x6n7o8p...q9r0s1t2", type: "Admit Card", candidate: "AIIMS2024006", name: "Sneha Reddy", block: "#15852", status: "confirmed", time: "2024-01-15 14:36:10" },
+  { id: 7, hash: "# 0x1u2v3w...x4y5z6a7", type: "Payment", candidate: "AIIMS2024007", name: "Anil Kumar", block: "#15853", status: "pending", time: "2024-01-16 09:00:00" },
+  { id: 8, hash: "# 0x8b9c1d...e2f3g4h5", type: "Result", candidate: "AIIMS2024008", name: "Bhavna Patel", block: "#15854", status: "confirmed", time: "2024-01-16 10:30:00" },
+];
 
 const columns = [
   { name: "Hash", uid: "hash" },
@@ -37,129 +61,71 @@ const columns = [
   { name: "Time", uid: "time" },
   { name: "ACTIONS", uid: "actions" },
 ];
-const users = [
-  {
-    id: 1,
-    hash: "# 0x4a5e1e...fdeda33b",
-    type: "Application",
-    candidate: "AIIMS2024001",
-    name: "Rahul kumar Singh",
-    icon: "BlocksIcon",
-    status: "confirmed" as Status,
-    block: "#15847",
-    time: "2024-01-15 14:30:22",
-  },
-  {
-    id: 2,
-    hash: "# 0x4a5e1e...fdeda33b",
-    type: "Payment",
-    candidate: "AIIMS2024001",
-    name: "Rahul kumar Singh",
-    icon: "Candidate",
-    status: "pending" as Status,
-    block: "#15847",
-    time: "2024-01-15 14:30:22",
-  },
-  {
-    id: 3,
-    hash: "# 0x4a5e1e...fdeda33b",
-    type: "Result",
-    candidate: "AIIMS2024001",
-    name: "Rahul kumar Singh",
-    icon: "Document",
-    status: "failed" as Status,
-    block: "#15847",
-    time: "2024-01-15 14:30:22",
-  },
-  {
-    id: 4,
-    hash: "# 0x8d3e4f...0b1c2d3e",
-    type: "Result",
-    candidate: "AIIMS2024004",
-    name: "Rahul kumar Singh",
-    icon: "Document",
-    status: "failed" as Status,
-    block: "#15847",
-    time: "2024-01-15 14:30:22",
-  },
-  {
-    id: 5,
-    hash: "# 0x4a5e1e...fdeda33b",
-    type: "Result",
-    candidate: "AIIMS2024001",
-    name: "Abhishek  Singh",
-    icon: "Document",
-    status: "failed" as Status,
-    block: "#15847",
-    time: "2024-01-15 14:30:22",
-  },
-];
 
-const typeIconMap: Record<string, React.ReactNode> = {
+const typeIconMap: Record<TransactionItem['type'], React.ReactNode> = {
   Application: <FileText className="w-4 h-4 text-blue-500" />,
+  "Admit Card": <FileText className="w-4 h-4 text-purple-500" />,
   Payment: <UserIcon className="w-4 h-4 text-yellow-500" />,
   Result: <CircleCheckBig className="w-4 h-4 text-success-500" />,
 };
 
 type Status = "confirmed" | "pending" | "failed";
 
-const statusMap: Record<
-  Status,
-  { color: "success" | "danger" | "warning"; icon: React.ReactNode }
-> = {
-  confirmed: {
-    color: "success",
-    icon: <CheckCircle className="w-4 h-4 text-green-500" />,
-  },
-  pending: {
-    color: "warning",
-    icon: <AlertCircle className="w-4 h-4 text-yellow-500" />,
-  },
-  failed: {
-    color: "danger",
-    icon: <CircleX className="w-4 h-4 text-red-500" />,
-  },
+const statusMap: Record<Status, { color: "success" | "danger" | "warning"; icon: React.ReactNode }> = {
+  confirmed: { color: "success", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
+  pending: { color: "warning", icon: <AlertCircle className="w-4 h-4 text-yellow-500" /> },
+  failed: { color: "danger", icon: <CircleX className="w-4 h-4 text-red-500" /> },
 };
 
-const status = [
-  { key: "allstatus", label: "All Status" },
+const statusOptions = [
+  { key: "all", label: "All Status" },
   { key: "confirmed", label: "Confirmed" },
   { key: "pending", label: "Pending" },
   { key: "failed", label: "Failed" },
 ];
-const allTypes = [
-  { key: "alltypes", label: "All Types" },
-  { key: "application", label: "Application" },
-  { key: "admitcard", label: "Admit Card" },
-  { key: "payment", label: "Payment" },
-  { key: "result", label: "Result" },
+
+const allTypesOptions = [
+  { key: "all", label: "All Types" },
+  { key: "Application", label: "Application" },
+  { key: "Admit Card", label: "Admit Card" },
+  { key: "Payment", label: "Payment" },
+  { key: "Result", label: "Result" },
 ];
-const allTimes = [
-  { key: "alltimes", label: "All Times" },
+
+const allTimesOptions = [
+  { key: "all", label: "All Times" },
   { key: "today", label: "Today" },
-  { key: "admitcard", label: "Admit Card" },
   { key: "thisweek", label: "This Week" },
   { key: "thismonth", label: "This Month" },
 ];
 
 export default function AllTransactions() {
-  const router=useRouter()
+  const router = useRouter();
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterType, setFilterType] = useState("all");
+  // const [filterTime, setFilterTime] = useState("all"); // Time filtering requires more complex date logic, kept simple here
+
+  // --- FILTERED DATA LOGIC (useMemo for performance) ---
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      // 1. Search Filter (Hash, Candidate ID, Name)
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = user.hash.toLowerCase().includes(searchLower) ||
+        user.candidate.toLowerCase().includes(searchLower) ||
+        user.name.toLowerCase().includes(searchLower);
+
+      const matchesStatus = filterStatus === "all" || user.status === filterStatus;
+
+      const matchesType = filterType === "all" || user.type === filterType;
+
+      return matchesSearch && matchesStatus && matchesType;
+    });
+  }, [searchTerm, filterStatus, filterType]);
+
   const renderCell = useCallback(
-    (
-      user: {
-        id: number;
-        type: string;
-        name: string;
-        candidate: string;
-        block: string;
-        status: Status;
-        time: string;
-        hash: string;
-        icon?: string;
-        actions?: any;
-      },
-      columnKey: keyof typeof user
-    ) => {
+    (user: TransactionItem, columnKey: keyof TransactionItem) => {
       const cellValue = user[columnKey];
       switch (columnKey) {
         case "hash":
@@ -174,6 +140,7 @@ export default function AllTransactions() {
         case "type":
           return (
             <div className="flex items-center gap-2">
+
               {typeIconMap[user.type]}
               <span>{user.type}</span>
             </div>
@@ -181,9 +148,11 @@ export default function AllTransactions() {
         case "status":
           return (
             <div className="flex items-center gap-2">
+
               {statusMap[user.status].icon}
               <Chip
                 className="capitalize flex items-center gap-1"
+
                 color={statusMap[user.status].color}
                 size="sm"
                 variant="flat"
@@ -192,14 +161,13 @@ export default function AllTransactions() {
               </Chip>
             </div>
           );
-
         case "actions":
           return (
             <div className="relative flex justify-center items-end gap-2">
               <Tooltip content="View">
                 <span
-                  className="flex gap-2  text-default-400 cursor-pointer active:opacity-50"
-                  onClick={() => router.push(`/all-transactions/${user.id}`)}
+                  className="flex gap-2 text-default-400 cursor-pointer active:opacity-50"
+                  onClick={() => router.push(`/transactions/${user.id}`)}
                 >
                   <Eye /> View
                 </span>
@@ -207,11 +175,17 @@ export default function AllTransactions() {
             </div>
           );
         default:
+
           return cellValue;
       }
     },
-    []
+    [router]
   );
+
+  const confirmedCount = filteredUsers.filter(u => u.status === 'confirmed').length;
+  const pendingCount = filteredUsers.filter(u => u.status === 'pending').length;
+  const failedCount = filteredUsers.filter(u => u.status === 'failed').length;
+  const totalCount = filteredUsers.length;
 
   return (
     <>
@@ -222,38 +196,67 @@ export default function AllTransactions() {
       />
       <div className="p-5">
         <div className="bg-[#18181b] rounded-xl border border-gray-700 my-10 p-5">
-          <h2 className="flex gap-2">
+          <h2 className="flex gap-2 text-white">
             <Funnel /> Filter & Search
           </h2>
           <div className="flex justify-between gap-3 my-5">
             <Input
               startContent={<Search />}
-              placeholder="Search hash, candidate"
+              placeholder="Search hash, candidate, or name"
               size="md"
               type="text"
+              className="max-w-xs"
+              value={searchTerm}
+              onValueChange={setSearchTerm}
             />
-            <Select size="md" placeholder="All Status">
-              {status.map((item) => (
-                <SelectItem key={item.key}>{item.label}</SelectItem>
+            <Select
+              size="md"
+              placeholder="All Status"
+              className="max-w-[150px]"
+              selectedKeys={[filterStatus]} // This prop correctly controls the selected item
+              onSelectionChange={(keys) => setFilterStatus(Array.from(keys)[0] as Status | 'all')}
+            >
+              {statusOptions.map((item) => (
+                <SelectItem key={item.key}>
+                  {item.label}
+                </SelectItem>
               ))}
             </Select>
-            <Select size="md" placeholder="All Types">
-              {allTypes.map((item) => (
-                <SelectItem key={item.key}>{item.label}</SelectItem>
+
+            <Select
+              size="md"
+              placeholder="All Types"
+              className="max-w-[150px]"
+              selectedKeys={[filterType]}
+              onSelectionChange={(keys) => setFilterType(Array.from(keys)[0] as TransactionItem['type'] | 'all')}
+            >
+              {allTypesOptions.map((item) => (
+                <SelectItem key={item.key}>
+                  {item.label}
+                </SelectItem>
               ))}
             </Select>
-            <Select size="md" placeholder="All Times">
-              {allTimes.map((item) => (
-                <SelectItem key={item.key}>{item.label}</SelectItem>
+
+            <Select
+              size="md"
+              placeholder="All Times"
+              className="max-w-[150px]"
+            >
+              {allTimesOptions.map((item) => (
+                <SelectItem key={item.key}>
+                  {item.label}
+                </SelectItem>
               ))}
             </Select>
           </div>
-          <div className="flex justify-between">
-            <span className="text-small">Showing 8 of 8 transactions </span>
+          <div className="flex justify-between text-white">
+            <span className="text-small">
+              Showing {totalCount} of {users.length} total transactions
+            </span>
             <div className="flex gap-2">
-              <Chip size="sm">5 Confirmed</Chip>
-              <Chip size="sm">2 Pending</Chip>
-              <Chip size="sm">1 Failed</Chip>
+              <Chip size="sm" color="success">{confirmedCount} Confirmed</Chip>
+              <Chip size="sm" color="warning">{pendingCount} Pending</Chip>
+              <Chip size="sm" color="danger">{failedCount} Failed</Chip>
             </div>
           </div>
         </div>
@@ -261,12 +264,7 @@ export default function AllTransactions() {
           isVirtualized
           rowHeight={70}
           className="mb-10"
-          aria-label="Example table with custom cells"
-          topContent={
-            <div className="flex justify-between my-4">
-              <h2 className="text-3xl"># Recent Transactions</h2>
-            </div>
-          }
+          aria-label="All Transactions Table"
         >
           <TableHeader columns={columns}>
             {(column) => (
@@ -278,12 +276,12 @@ export default function AllTransactions() {
               </TableColumn>
             )}
           </TableHeader>
-          <TableBody items={users}>
+          <TableBody items={filteredUsers}>
             {(item) => (
               <TableRow key={item.id}>
                 {(columnKey) => (
-                  <TableCell className="border-b border-gray-200/25">
-                    {renderCell(item, columnKey as keyof typeof item)}
+                  <TableCell className="border-b border-gray-700/50">
+                    {renderCell(item, columnKey as keyof TransactionItem)}
                   </TableCell>
                 )}
               </TableRow>
