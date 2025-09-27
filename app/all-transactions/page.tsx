@@ -26,6 +26,7 @@ import {
   UserIcon,
 } from "lucide-react";
 import TransactionNavbar from "@/components/Nav/TransactionNavbar";
+import { useRouter } from "next/navigation";
 
 const columns = [
   { name: "Hash", uid: "hash" },
@@ -142,6 +143,7 @@ const allTimes = [
 ];
 
 export default function AllTransactions() {
+  const router=useRouter()
   const renderCell = useCallback(
     (
       user: {
@@ -194,8 +196,11 @@ export default function AllTransactions() {
         case "actions":
           return (
             <div className="relative flex justify-center items-end gap-2">
-              <Tooltip content="Edit user">
-                <span className="flex gap-2  text-default-400 cursor-pointer active:opacity-50">
+              <Tooltip content="View">
+                <span
+                  className="flex gap-2  text-default-400 cursor-pointer active:opacity-50"
+                  onClick={() => router.push(`/all-transactions/${user.id}`)}
+                >
                   <Eye /> View
                 </span>
               </Tooltip>
