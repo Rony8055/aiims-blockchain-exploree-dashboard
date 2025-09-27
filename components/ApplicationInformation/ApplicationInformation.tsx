@@ -95,8 +95,8 @@ const ApplicationInformation: React.FC<ApplicationInformationProps> = ({ data })
                 </div>
 
                 <div className="space-y-6">
-                    <div className="flex flex-row">
-                        <h3 className="text-default-500 text-small mb-1">Payment Status</h3>
+                    <div className="flex flex-col">
+                        <h3 className="text-default-500 text-small mb-3">Payment Status</h3>
                         <PaymentStatusBadge status={paymentStatus} />
                     </div>
 
